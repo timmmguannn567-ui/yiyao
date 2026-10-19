@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>RA Mail Studio｜创新药注册邮件专家 Demo</title>
+  <style>
+    :root {
+      --ink: #172a29;
+      --muted: #667773;
+      --line: #dce5df;
+      --panel: rgba(255,255,255,.92);
+      --paper: #f6f7f2;
+      --green: #0f6b57;
+      --green-2: #17846a;
+      --mint: #dcefe5;
+      --amber: #b76815;
+      --amber-bg: #fff2df;
+      --red: #aa3f36;
+      --red-bg: #fbe8e4;
+      --blue: #305f8b;
+      --blue-bg: #eaf2f9;
+      --shadow: 0 16px 38px rgba(42, 63, 55, .08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Inter, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 10% -10%, rgba(93, 169, 132, .19), transparent 30%),
+        radial-gradient(circle at 100% 18%, rgba(228, 184, 94, .14), transparent 25%),
+        var(--paper);
+    }
+
+    button, select, textarea, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible,
+    [contenteditable="true"]:focus-visible { outline: 3px solid rgba(23,132,106,.24); outline-offset: 2px; }
+
+    .shell { max-width: 1480px; margin: 0 auto; padding: 24px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      padding: 6px 2px 22px;
+    }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-mark {
+      width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+      color: white; font-weight: 800; letter-spacing: -.04em;
+      background: linear-gradient(145deg, var(--green), #194e47);
+      box-shadow: 0 8px 20px rgba(15,107,87,.22);
+    }
+    .brand h1 { margin: 0; font: 700 17px/1.15 Georgia, "Noto Serif SC", serif; letter-spacing: -.01em; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .status {
+      display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px;
+      border: 1px solid var(--line); background: rgba(255,255,255,.7); padding: 8px 11px; border-radius: 999px;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #45a67d; box-shadow: 0 0 0 4px #dff1e7; }
+
+    .hero {
+      position: relative; overflow: hidden; border-radius: 24px; padding: 28px 32px; margin-bottom: 18px;
+      color: #effaf6; background: linear-gradient(120deg, #133c38 0%, #0d6a56 76%, #148970 100%);
+      box-shadow: var(--shadow);
+    }
+    .hero::after {
+      content: ""; position: absolute; width: 330px; height: 330px; right: -92px; top: -190px;
+      border-radius: 50%; border: 1px solid rgba(255,255,255,.16); box-shadow: 0 0 0 34px rgba(255,255,255,.035), 0 0 0 70px rgba(255,255,255,.025);
+    }
+    .eyebrow { color: #aee2cf; font-size: 12px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    .hero h2 { max-width: 800px; margin: 9px 0 7px; font: 600 clamp(25px, 3vw, 40px)/1.18 Georgia, "Noto Serif SC", serif; letter-spacing: -.025em; }
+    .hero p { max-width: 820px; margin: 0; color: rgba(240,255,249,.74); font-size: 14px; line-height: 1.7; }
+    .hero-note { margin-top: 18px; display: inline-flex; align-items: center; gap: 8px; color: #d5f0e6; font-size: 12px; }
+    .hero-note svg { flex: none; }
+
+    .workspace { display: grid; grid-template-columns: minmax(360px, .86fr) minmax(520px, 1.4fr); gap: 18px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid rgba(209,220,213,.88); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .panel-head { padding: 20px 22px 15px; border-bottom: 1px solid var(--line); }
+    .panel-head-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .panel-head h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+    .panel-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .step { color: var(--green); background: var(--mint); padding: 5px 8px; border-radius: 8px; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+    .panel-body { padding: 20px 22px 22px; }
+
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+    label { color: #42524f; font-size: 12px; font-weight: 700; }
+    select, input[type="text"], textarea {
+      width: 100%; color: var(--ink); background: #fbfcfa; border: 1px solid #d8e1dc; border-radius: 11px;
+      transition: border .18s, box-shadow .18s, background .18s;
+    }
+    select, input[type="text"] { height: 42px; padding: 0 12px; }
+    select:hover, input:hover, textarea:hover { border-color: #b4c8bd; background: white; }
+    textarea { min-height: 285px; resize: vertical; padding: 14px; font: 13px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .textarea-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 1px; }
+    .tiny { color: var(--muted); font-size: 11px; }
+    .link-btn { border: 0; color: var(--green); background: none; padding: 2px 0; font-size: 11px; font-weight: 750; }
+
+    .actions { display: flex; gap: 9px; margin-top: 16px; }
+    .primary {
+      flex: 1; border: 0; border-radius: 11px; padding: 12px 17px; color: white; font-weight: 750;
+      background: linear-gradient(115deg, var(--green), var(--green-2)); box-shadow: 0 8px 16px rgba(15,107,87,.18);
+    }
+    .primary:hover { filter: brightness(1.045); transform: translateY(-1px); }
+    .secondary { border: 1px solid var(--line); border-radius: 11px; padding: 11px 14px; color: var(--ink); background: white; font-weight: 650; }
+    .secondary:hover { border-color: #a9c0b5; background: #f9fcfa; }
+
+    .notice {
+      display: flex; gap: 10px; margin-top: 15px; padding: 12px; border-radius: 11px;
+      color: #6b5a37; background: #fbf7ec; border: 1px solid #eee2c3; font-size: 11px; line-height: 1.55;
+    }
+    .notice svg { flex: none; margin-top: 1px; }
+
+    .result-panel { min-height: 690px; }
+    .tabs { display: flex; gap: 2px; padding: 0 22px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+    .tab {
+      position: relative; white-space: nowrap; border: 0; background: transparent; color: var(--muted); padding: 14px 13px 13px;
+      font-size: 12px; font-weight: 720;
+    }
+    .tab.active { color: var(--green); }
+    .tab.active::after { content: ""; position: absolute; left: 11px; right: 11px; bottom: -1px; height: 2px; background: var(--green); border-radius: 2px 2px 0 0; }
+    .tab-pane { display: none; padding: 21px 22px 24px; }
+    .tab-pane.active { display: block; animation: reveal .22s ease-out; }
+    @keyframes reveal { from { opacity: .35; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+    .empty { min-height: 445px; display: grid; place-items: center; text-align: center; color: var(--muted); }
+    .empty-icon { width: 58px; height: 58px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 16px; color: var(--green); background: var(--mint); }
+    .empty h4 { margin: 0 0 7px; color: var(--ink); font-size: 15px; }
+    .empty p { max-width: 310px; margin: 0; font-size: 12px; line-height: 1.65; }
+
+    .section-title { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 0 0 11px; }
+    .section-title h4 { margin: 0; font-size: 13px; }
+    .confidence { color: var(--green); background: var(--mint); border-radius: 999px; padding: 5px 8px; font-size: 10px; font-weight: 760; }
+    .summary-card { padding: 15px 16px; border: 1px solid var(--line); background: #fbfcfa; border-radius: 13px; }
+    .summary-card + .summary-card { margin-top: 10px; }
+    .summary-kicker { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .summary-value { margin-top: 6px; font-size: 13px; line-height: 1.65; }
+    .summary-list { margin: 8px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.7; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .badge { padding: 6px 9px; border-radius: 8px; font-size: 11px; background: var(--blue-bg); color: var(--blue); border: 1px solid #d7e5f1; }
+
+    .term-list { display: grid; gap: 9px; }
+    .term-card { display: grid; grid-template-columns: 108px 1fr; gap: 14px; padding: 13px 14px; background: #fbfcfa; border: 1px solid var(--line); border-radius: 12px; }
+    .term-key { color: var(--green); font-weight: 800; font-size: 12px; }
+    .term-cn { font-weight: 700; font-size: 12px; }
+    .term-note { margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+
+    .risk-list { display: grid; gap: 9px; }
+    .risk { display: grid; grid-template-columns: 74px 1fr; gap: 12px; padding: 13px 14px; border-radius: 12px; border: 1px solid; }
+    .risk.high { background: var(--red-bg); border-color: #f0cec8; }
+    .risk.medium { background: var(--amber-bg); border-color: #efd9b9; }
+    .risk.low { background: var(--blue-bg); border-color: #d4e2ef; }
+    .risk-level { font-size: 10px; font-weight: 850; letter-spacing: .08em; }
+    .risk.high .risk-level { color: var(--red); }
+    .risk.medium .risk-level { color: var(--amber); }
+    .risk.low .risk-level { color: var(--blue); }
+    .risk-title { font-size: 12px; font-weight: 780; }
+    .risk-note { margin-top: 4px; font-size: 11px; color: #5f6764; line-height: 1.55; }
+
+    .reply-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .reply-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+    .mini-btn { border: 1px solid var(--line); border-radius: 9px; background: white; color: #40504c; padding: 7px 9px; font-size: 11px; font-weight: 680; }
+    .mini-btn:hover { border-color: #a9c0b5; }
+    .reply-sheet { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: white; }
+    .subject { padding: 12px 15px; background: #f4f8f5; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .subject strong { color: var(--green); }
+    .reply-body { min-height: 390px; padding: 18px; white-space: pre-wrap; font: 13px/1.72 Georgia, "Times New Roman", serif; color: #243532; }
+    .reply-hint { margin-top: 10px; color: var(--muted); font-size: 11px; }
+    mark.placeholder { background: #fff0bf; color: #745400; padding: 1px 3px; border-radius: 3px; }
+
+    .footer { display: flex; justify-content: space-between; gap: 18px; padding: 18px 2px 4px; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .toast {
+      position: fixed; right: 24px; bottom: 24px; z-index: 20; opacity: 0; pointer-events: none;
+      color: white; background: #173c36; padding: 11px 14px; border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.16);
+      font-size: 12px; transform: translateY(8px); transition: .22s ease;
+    }
+    .toast.show { opacity: 1; transform: none; }
+
+    @media (max-width: 980px) {
+      .workspace { grid-template-columns: 1fr; }
+      .result-panel { min-height: auto; }
+    }
+    @media (max-width: 620px) {
+      .shell { padding: 14px; }
+      .topbar { align-items: flex-start; }
+      .status { display: none; }
+      .hero { padding: 24px 21px; }
+      .field-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .panel-head, .panel-body, .tab-pane { padding-left: 16px; padding-right: 16px; }
+      .tabs { padding: 0 8px; }
+      .term-card { grid-template-columns: 1fr; gap: 5px; }
+      .footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">RA</div>
+        <div>
+          <h1>RA Mail Studio</h1>
+          <p>创新药注册邮件专家 · Demo</p>
+        </div>
+      </div>
+      <div class="status"><span class="status-dot"></span>本地规则演示 · 不上传数据</div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">Regulatory Affairs Workspace</div>
+      <h2>读懂意图，识别风险，写出经得起审阅的回复。</h2>
+      <p>面向创新药注册岗位，覆盖 NMPA、FDA 与 EMA 沟通场景。把英文原始邮件转化为专业术语说明、合规风险提示和正式英文回复草稿。</p>
+      <div class="hero-note">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4.5 6v5.2c0 4.7 3.2 8.9 7.5 9.8 4.3-.9 7.5-5.1 7.5-9.8V6L12 3Z" stroke="currentColor" stroke-width="1.8"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8"/></svg>
+        Demo 不替代法规、医学、质量或法务审核；发送前须由项目负责人确认。
+      </div>
+    </section>
+
+    <section class="workspace">
+      <article class="panel">
+        <div class="panel-head">
+          <div class="panel-head-row">
+            <div><h3>原始邮件</h3><p>粘贴英文邮件，并补充必要的业务上下文。</p></div>
+            <span class="step">STEP 01</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="field-grid">
+            <div class="field">
+              <label for="region">目标监管区域</label>
+              <select id="region">
+                <option value="auto">自动识别</option>
+                <option value="NMPA">中国 · NMPA</option>
+                <option value="FDA">美国 · FDA</option>
+                <option value="EMA">欧盟 · EMA</option>
+                <option value="MULTI">多区域协同</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="scenario">邮件场景</label>
+              <select id="scenario">
+                <option value="auto">自动识别</option>
+                <option value="request">索取注册资料</option>
+                <option value="deficiency">缺陷信 / 补充资料</option>
+                <option value="cmc">CMC 资料沟通</option>
+                <option value="clinical">临床资料沟通</option>
+                <option value="nonclinical">非临床资料沟通</option>
+                <option value="quality">稳定性 / 验证 / 质量标准</option>
+                <option value="status">注册进度确认 / 催办</option>
+                <option value="authority">监管机构邮件解读</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="recipient">收件方</label>
+              <select id="recipient">
+                <option>海外合作方</option>
+                <option>监管机构</option>
+                <option>CRO / 顾问</option>
+                <option>生产商 / 供应商</option>
+                <option>全球总部</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="project">项目 / 产品代号（可选）</label>
+              <input id="project" type="text" placeholder="例如：Project Aurora" />
+            </div>
+            <div class="field full">
+              <label for="emailInput">英文邮件正文</label>
+              <textarea id="emailInput" spellcheck="false" placeholder="Paste the English email here..."></textarea>
+              <div class="textarea-meta">
+                <span class="tiny" id="charCount">0 字符</span>
+                <span><button class="link-btn" id="sampleBtn" type="button">载入示例</button> · <button class="link-btn" id="clearBtn" type="button">清空</button></span>
+              </div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" id="analyzeBtn" type="button">分析并生成回复</button>
+            <button class="secondary" id="resetBtn" type="button">重置</button>
+          </div>
+          <div class="notice">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5m0 3h.01M10.3 4.9 3.5 17a2 2 0 0 0 1.7 3h13.6a2 2 0 0 0 1.7-3L13.7 4.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span>请先删除患者姓名、受试者编号、个人联系方式及未获授权的商业机密。本 Demo 仅做结构化演示。</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel result-panel">
+        <div class="panel-head">
+          <div class="panel-head-row">
+            <div><h3>专家工作区</h3><p id="resultSubtitle">等待输入邮件</p></div>
+            <span class="step">STEP 02</span>
+          </div>
+        </div>
+        <nav class="tabs" aria-label="分析结果">
+          <button class="tab active" data-tab="overview" type="button">邮件意图</button>
+          <button class="tab" data-tab="terms" type="button">专业术语 <span id="termCount"></span></button>
+          <button class="tab" data-tab="risks" type="button">合规风险 <span id="riskCount"></span></button>
+          <button class="tab" data-tab="reply" type="button">英文回复</button>
+        </nav>
+
+        <section class="tab-pane active" id="overview">
+          <div class="empty" id="emptyState">
+            <div>
+              <div class="empty-icon">
+                <svg width="27" height="27" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6.5h16v11H4v-11Z" stroke="currentColor" stroke-width="1.7"/><path d="m5 8 7 5 7-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              </div>
+              <h4>准备分析英文邮件</h4>
+              <p>载入示例或粘贴真实邮件，Demo 将识别沟通场景、监管区域、专业术语与潜在风险。</p>
+            </div>
+          </div>
+          <div id="overviewContent" hidden></div>
+        </section>
+        <section class="tab-pane" id="terms"><div id="termsContent"></div></section>
+        <section class="tab-pane" id="risks"><div id="risksContent"></div></section>
+        <section class="tab-pane" id="reply"><div id="replyContent"></div></section>
+      </article>
+    </section>
+
+    <footer class="footer">
+      <span>RA Mail Studio Demo · 适用于创新药注册邮件的初步辅助处理</span>
+      <span>规则库版本 0.1 · NMPA / FDA / EMA · 最终内容须经人工审核</span>
+    </footer>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+    const sampleEmail = `Subject: Request for Module 3 documents and updated stability data – Project Aurora
+
+Dear Regulatory Affairs Team,
+
+To support the upcoming IND submission, please provide the current Module 3 documents for the drug substance and drug product, including the executed process validation protocols, updated specifications, and Certificates of Analysis for the registration batches.
+
+We also noted that the available long-term stability data only cover 12 months. Please confirm whether the 18-month data will be available by 15 November and whether any OOS results or significant deviations have been observed. If the documents cannot be provided by that date, please share a realistic delivery plan and explain the potential impact on the submission timeline.
+
+Best regards,
+Sarah`;
+
+    const termBank = [
+      { keys: ["module 3", "quality overall summary"], term: "CTD Module 3", cn: "CTD 第3模块（质量资料）", note: "涵盖原料药与制剂的生产、质量控制、标准、稳定性等核心 CMC 内容。" },
+      { keys: ["ind", "investigational new drug"], term: "IND", cn: "新药临床试验申请", note: "美国通常指 Investigational New Drug application；跨区域沟通时应确认对应申报路径。" },
+      { keys: ["impd"], term: "IMPD", cn: "试验用药品档案", note: "欧盟临床试验申请中的试验药质量、非临床及临床相关资料文件。" },
+      { keys: ["cmc", "chemistry, manufacturing"], term: "CMC", cn: "化学、生产和质量控制", note: "用于描述药品研发和注册中的质量研究与生产控制体系。" },
+      { keys: ["certificate of analysis", "certificates of analysis", "coa"], term: "CoA", cn: "检验报告 / 分析证书", note: "应核对批号、检测项目、接受标准、结果、放行状态及签署版本。" },
+      { keys: ["oos", "out-of-specification"], term: "OOS", cn: "超出质量标准结果", note: "涉及调查、根因、批次影响与 CAPA；对外表述应基于已批准的调查结论。" },
+      { keys: ["capa"], term: "CAPA", cn: "纠正和预防措施", note: "需避免在调查未完成时承诺根因或措施有效性。" },
+      { keys: ["stability"], term: "Stability Data", cn: "稳定性数据", note: "应明确条件、时间点、批次、包装系统、趋势及偏差/OOS 状态。" },
+      { keys: ["process validation", "validation protocol"], term: "Process Validation", cn: "工艺验证", note: "需区分方案、执行记录与总结报告，并说明是否为批准版本。" },
+      { keys: ["specification", "specifications"], term: "Specification", cn: "质量标准", note: "应明确注册标准、放行标准或货架期标准，避免口径混用。" },
+      { keys: ["deficiency", "information request", "request for information"], term: "Deficiency / IR", cn: "缺陷项 / 补充资料要求", note: "回复应逐项对应问题，提供依据、附件定位与明确承诺日期。" },
+      { keys: ["ectd"], term: "eCTD", cn: "电子通用技术文档", note: "需关注生命周期管理、序列、替换关系以及区域技术要求。" },
+      { keys: ["clinical study report", "csr"], term: "CSR", cn: "临床研究报告", note: "对外提交前应确认版本、数据锁库状态及医学/统计审核状态。" },
+      { keys: ["investigator's brochure", "investigator brochure", "ib"], term: "IB", cn: "研究者手册", note: "更新应与已知安全性信息、参考安全信息及区域申报保持一致。" },
+      { keys: ["dsur"], term: "DSUR", cn: "研发期间安全性更新报告", note: "需确保数据截止日、报告周期及各区域递交策略一致。" },
+      { keys: ["nonclinical", "toxicology", "glp"], term: "Nonclinical / GLP", cn: "非临床 / 药物非临床试验质量管理规范", note: "应确认研究状态、GLP 符合性、最终报告与支持的临床阶段。" },
+      { keys: ["dmf", "drug master file"], term: "DMF", cn: "药物主文件", note: "需确认 DMF 类型、持有人授权、版本及监管机构可引用状态。" },
+      { keys: ["asma", "asMF".toLowerCase()], term: "ASMF", cn: "活性物质主文件", note: "欧盟常用的原料药主文件路径，应区分申请人部分和限制部分。" }
+    ];
+
+    const scenarios = {
+      request: { label: "索取注册资料", intent: "对方正在索取支持注册申报的文件或数据，并希望确认交付时间与版本状态。" },
+      deficiency: { label: "缺陷信 / 补充资料", intent: "对方要求针对监管问题逐项准备答复、证据材料及明确的提交计划。" },
+      cmc: { label: "CMC 资料沟通", intent: "邮件涉及原料药/制剂的生产、质量控制、注册文件或变更影响评估。" },
+      clinical: { label: "临床资料沟通", intent: "邮件涉及临床方案、数据、报告、安全性信息或临床申报支持材料。" },
+      nonclinical: { label: "非临床资料沟通", intent: "邮件涉及药理、毒理、GLP 研究或支持临床开发的非临床证据。" },
+      quality: { label: "稳定性 / 验证 / 质量标准", intent: "对方需要确认稳定性、验证、质量标准、偏差或批次放行相关信息。" },
+      status: { label: "注册进度确认 / 催办", intent: "对方希望获得当前进度、下一里程碑、责任人与可执行交付日期。" },
+      authority: { label: "监管机构邮件解读", intent: "该邮件可能来自或转述监管机构，需要准确拆分问题并规划正式响应。" }
+    };
+
+    const scenarioPatterns = [
+      ["deficiency", /deficien|information request|request for information|additional information|complete response/i],
+      ["quality", /stability|validation|specification|oos|deviation|certificate of analysis|shelf.?life/i],
+      ["clinical", /clinical|protocol|subject|patient|csr|investigator|safety|dsur|sae/i],
+      ["nonclinical", /nonclinical|toxicology|pharmacology|glp/i],
+      ["cmc", /\bcmc\b|module 3|drug substance|drug product|manufactur|impurity|dmf|asmf/i],
+      ["status", /status|progress|follow.?up|timeline|milestone|overdue|remind/i],
+      ["request", /please provide|could you provide|request|share the|send us/i]
+    ];
+
+    const escapeHtml = (value = "") => value.replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+
+    function detectRegion(text) {
+      if (/\b(fda|ind|nda|bla|type [a-v] meeting)\b/i.test(text)) return "FDA";
+      if (/\b(ema|chmp|impd|ctis|eu ctr|asmf)\b/i.test(text)) return "EMA";
+      if (/\b(nmpa|cde|china|中国|药审中心)\b/i.test(text)) return "NMPA";
+      return "MULTI";
+    }
+
+    function detectScenario(text) {
+      for (const [key, pattern] of scenarioPatterns) if (pattern.test(text)) return key;
+      return "request";
+    }
+
+    function extractDate(text) {
+      const patterns = [
+        /\b(?:by|before|no later than|due(?: on)?)\s+((?:\d{1,2}\s+)?(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(?:\s+\d{1,2})?(?:,?\s+\d{4})?)/i,
+        /\b(?:by|before|due(?: on)?)\s+(\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)/i,
+        /\b(\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(?:\s+\d{4})?)/i
+      ];
+      for (const p of patterns) { const m = text.match(p); if (m) return m[1]; }
+      return "未识别到明确日期";
+    }
+
+    function extractName(text) {
+      const match = text.match(/(?:best regards|kind regards|sincerely|regards)[,\s\n]+([A-Z][A-Za-z'-]{1,30})/i);
+      return match ? match[1] : "[Name]";
+    }
+
+    function findTerms(text) {
+      const lower = text.toLowerCase();
+      const found = termBank.filter(item => item.keys.some(key => lower.includes(key.toLowerCase())));
+      return found.length ? found : [
+        { term: "Regulatory Documentation", cn: "注册申报资料", note: "建议在正式回复中明确文件名称、版本号、批准状态、格式及预计交付日期。" },
+        { term: "Submission Timeline", cn: "申报时间表", note: "对外日期应与项目计划一致，并经过相关职能确认。" }
+      ];
+    }
+
+    function buildRisks(text, region, deadline) {
+      const risks = [];
+      if (/oos|deviation|safety signal|serious adverse|data integrity|inspection finding/i.test(text)) {
+        risks.push({ level: "high", tag: "高风险", title: "质量或安全性事实不得在调查完成前下结论", note: "回复前请由 QA/安全性/医学负责人确认调查状态、影响范围及可对外披露的批准措辞。" });
+      }
+      if (/confirm|commit|guarantee|ensure|will be available|no impact/i.test(text)) {
+        risks.push({ level: "medium", tag: "需确认", title: "邮件包含承诺性表达", note: "交付日期、合规状态和“无影响”等结论须有责任职能书面确认；建议保留条件性措辞。" });
+      }
+      if (/patient|subject|date of birth|medical record|personal data|个人信息|受试者/i.test(text)) {
+        risks.push({ level: "high", tag: "数据隐私", title: "可能涉及患者或受试者信息", note: "发送或上传前应去标识化，并按适用的数据保护要求及公司政策处理。" });
+      }
+      if (deadline === "未识别到明确日期") {
+        risks.push({ level: "medium", tag: "时间线", title: "未识别到明确回复或交付日期", note: "建议在回复中提出具体日期，避免使用“soon”或“as soon as possible”等不可执行表述。" });
+      } else {
+        risks.push({ level: "medium", tag: "时间线", title: `检测到日期：${deadline}`, note: "请核对时区、年份、内部审批周期以及该日期是否为资料交付日或正式申报日。" });
+      }
+      if (region === "MULTI") {
+        risks.push({ level: "low", tag: "区域差异", title: "未能唯一确定监管区域", note: "NMPA、FDA 与 EMA 的文件名称、申报路径和承诺管理方式可能不同，建议先确认目标市场。" });
+      } else {
+        const notes = {
+          FDA: "确认 IND/NDA/BLA 语境、会议或信息请求类型，以及是否需要在正式提交序列中响应。",
+          EMA: "确认 CTIS/IMPD/MAA 语境、成员国分工及欧盟文件版本的一致性。",
+          NMPA: "确认 CDE 沟通或补充资料通知的正式要求、中文版本及递交时限。"
+        };
+        risks.push({ level: "low", tag: region, title: `${region} 区域口径需要一致`, note: notes[region] });
+      }
+      risks.push({ level: "low", tag: "版本控制", title: "附件和数据应标明版本与批准状态", note: "建议在邮件或附件清单中列出文件名、版本、日期、状态及责任人，避免错用草稿。" });
+      return risks;
+    }
+
+    function buildReply({ scenario, region, recipient, project, deadline, name, text }) {
+      const projectText = project || "[Project / Product]";
+      const dateText = deadline === "未识别到明确日期" ? "[confirmed date]" : deadline;
+      let subject = `Regulatory documentation follow-up – ${projectText}`;
+      let body = "";
+
+      if (scenario === "deficiency" || scenario === "authority") {
+        subject = `Response plan for regulatory information request – ${projectText}`;
+        body = `Dear ${name},\n\nThank you for forwarding the regulatory authority's request regarding ${projectText}. We acknowledge receipt and are coordinating a cross-functional review to ensure that each question is addressed with the appropriate supporting evidence.\n\nWe will prepare a question-by-question response matrix covering the proposed response, supporting documents, document owner, and target completion date. Before confirming the final submission timeline, we will also verify whether any responses require updated analyses, quality documentation, or regional adaptations for ${region}.\n\nOur current target is to provide the consolidated response package by ${dateText}, subject to completion of the relevant quality, clinical, nonclinical, and regulatory reviews. If we identify any item that may affect this timeline, we will notify you promptly with the rationale and a revised delivery plan.\n\nPlease share the formal deficiency letter or request, including all annexes and the official response deadline, if these have not already been provided.\n\nKind regards,\n[Your Name]\nRegulatory Affairs`;
+      } else if (scenario === "status") {
+        subject = `Follow-up on regulatory deliverables and timeline – ${projectText}`;
+        body = `Dear ${name},\n\nI am writing to follow up on the outstanding regulatory deliverables for ${projectText}. To maintain the planned submission timeline, could you please confirm the current status, document owner, and expected delivery date for each open item?\n\nIn particular, please advise whether any technical, quality, or approval-related issue could affect delivery by ${dateText}. Where the original date is no longer achievable, please provide a realistic recovery plan, including interim deliverables and the earliest confirmed completion date.\n\nWe would appreciate your written update by [response date] so that we can assess any potential impact on the overall regulatory strategy and submission schedule.\n\nKind regards,\n[Your Name]\nRegulatory Affairs`;
+      } else if (scenario === "clinical") {
+        subject = `Clinical documentation clarification – ${projectText}`;
+        body = `Dear ${name},\n\nThank you for your message regarding the clinical documentation for ${projectText}. We are reviewing the request with the Clinical, Biostatistics, Pharmacovigilance, and Regulatory Affairs teams.\n\nTo ensure that the response is accurate and submission-ready, we will confirm the applicable study/data cut-off, document version, approval status, and consistency with the current protocol, Investigator's Brochure, and safety information.\n\nWe expect to provide the requested material, or a confirmed delivery plan, by ${dateText}. Please let us know if a specific format, regional template, or formal submission route is required for ${region}.\n\nKind regards,\n[Your Name]\nRegulatory Affairs`;
+      } else if (scenario === "nonclinical") {
+        subject = `Nonclinical documentation request – ${projectText}`;
+        body = `Dear ${name},\n\nThank you for your request regarding the nonclinical package for ${projectText}. We are confirming the status of the relevant pharmacology and toxicology studies, including GLP compliance, final report availability, and the clinical stage supported by each study.\n\nWe will provide the requested documents, together with the applicable study identifiers and version status, by ${dateText}, subject to completion of the internal scientific and quality review. If any report remains in draft, we will clearly identify its status and provide the expected finalization date.\n\nPlease confirm whether you require full study reports, CTD summaries, or both, and whether any region-specific format is expected for ${region}.\n\nKind regards,\n[Your Name]\nRegulatory Affairs`;
+      } else if (scenario === "quality" || scenario === "cmc") {
+        subject = `CMC documentation and data confirmation – ${projectText}`;
+        body = `Dear ${name},\n\nThank you for your message regarding the CMC package for ${projectText}. We are coordinating with Pharmaceutical Development, Manufacturing, Analytical Development, and Quality Assurance to confirm the requested documents and data.\n\nWe will verify the document versions and approval status, the relevant batches and stability conditions, and whether any deviation, OOS result, or change may affect the proposed regulatory content. We will provide the available approved documents by ${dateText}. Any item that remains pending will be listed separately with its owner, current status, and confirmed target date.\n\nPlease note that any conclusion regarding product quality or submission impact will be provided only after completion of the relevant quality assessment. Please also confirm whether you require the documents in eCTD-ready format and whether a specific ${region} regional template should be used.\n\nKind regards,\n[Your Name]\nRegulatory Affairs`;
+      } else {
+        subject = `Request for regulatory documentation – ${projectText}`;
+        body = `Dear ${name},\n\nThank you for your continued support for ${projectText}. To support the planned ${region} regulatory submission, could you please provide the requested registration documents and supporting data by ${dateText}?\n\nFor each document, please confirm the file name, version, approval status, and effective date. If an approved version is not yet available, please share the current status, document owner, expected approval date, and a realistic delivery plan. Please also identify any known deviation, data gap, or change that may affect the submission content or timeline.\n\nTo facilitate our review, we would appreciate receiving the documents together with a concise document index and, where applicable, a summary of changes from the previously shared version.\n\nPlease let us know promptly if any clarification is required or if the proposed date cannot be met.\n\nKind regards,\n[Your Name]\nRegulatory Affairs`;
+      }
+
+      if (recipient === "监管机构") {
+        body = body.replace(`Dear ${name},`, "Dear Sir or Madam,")
+          .replace(/could you please/gi, "we respectfully request that you")
+          .replace("Thank you for forwarding the regulatory authority's request", "Thank you for your request");
+      }
+      return { subject, body };
+    }
+
+    function switchTab(id) {
+      $$(".tab").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === id));
+      $$(".tab-pane").forEach(pane => pane.classList.toggle("active", pane.id === id));
+    }
+
+    function showToast(message) {
+      const toast = $("#toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function renderAnalysis() {
+      const text = $("#emailInput").value.trim();
+      if (!text) { showToast("请先粘贴英文邮件"); $("#emailInput").focus(); return; }
+      const selectedRegion = $("#region").value;
+      const selectedScenario = $("#scenario").value;
+      const region = selectedRegion === "auto" ? detectRegion(text) : selectedRegion;
+      const scenario = selectedScenario === "auto" ? detectScenario(text) : selectedScenario;
+      const deadline = extractDate(text);
+      const terms = findTerms(text);
+      const risks = buildRisks(text, region, deadline);
+      const name = extractName(text);
+      const recipient = $("#recipient").value;
+      const project = $("#project").value.trim();
+      const reply = buildReply({ scenario, region, recipient, project, deadline, name, text });
+      const dataRequests = [];
+      if (/module 3/i.test(text)) dataRequests.push("Module 3 质量文件");
+      if (/stability/i.test(text)) dataRequests.push("更新的稳定性数据");
+      if (/validation/i.test(text)) dataRequests.push("验证方案或报告");
+      if (/specification/i.test(text)) dataRequests.push("质量标准");
+      if (/certificate of analysis|\bcoa\b/i.test(text)) dataRequests.push("注册批次 CoA");
+      if (/timeline|delivery plan|expected date/i.test(text)) dataRequests.push("明确交付计划");
+      if (!dataRequests.length) dataRequests.push("确认请求范围与适用文件", "提供版本状态与预计交付日期");
+
+      $("#emptyState").hidden = true;
+      $("#overviewContent").hidden = false;
+      $("#resultSubtitle").textContent = `${region} · ${scenarios[scenario].label} · 正式严谨风格`;
+      $("#termCount").textContent = terms.length;
+      $("#riskCount").textContent = risks.length;
+      $("#overviewContent").innerHTML = `
+        <div class="section-title"><h4>结构化理解</h4><span class="confidence">规则匹配 · Demo</span></div>
+        <div class="summary-card"><div class="summary-kicker">核心意图</div><div class="summary-value">${escapeHtml(scenarios[scenario].intent)}</div></div>
+        <div class="summary-card"><div class="summary-kicker">需要处理的事项</div><ul class="summary-list">${dataRequests.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>
+        <div class="summary-card"><div class="summary-kicker">关键上下文</div><div class="badge-row"><span class="badge">区域：${escapeHtml(region)}</span><span class="badge">场景：${escapeHtml(scenarios[scenario].label)}</span><span class="badge">日期：${escapeHtml(deadline)}</span><span class="badge">对象：${escapeHtml(recipient)}</span></div></div>`;
+
+      $("#termsContent").innerHTML = `<div class="section-title"><h4>邮件中识别的术语</h4><span class="confidence">${terms.length} 项</span></div><div class="term-list">${terms.map(t => `<div class="term-card"><div class="term-key">${escapeHtml(t.term)}</div><div><div class="term-cn">${escapeHtml(t.cn)}</div><div class="term-note">${escapeHtml(t.note)}</div></div></div>`).join("")}</div>`;
+      $("#risksContent").innerHTML = `<div class="section-title"><h4>发送前检查</h4><span class="confidence">${risks.length} 项</span></div><div class="risk-list">${risks.map(r => `<div class="risk ${r.level}"><div class="risk-level">${escapeHtml(r.tag)}</div><div><div class="risk-title">${escapeHtml(r.title)}</div><div class="risk-note">${escapeHtml(r.note)}</div></div></div>`).join("")}</div>`;
+      $("#replyContent").innerHTML = `
+        <div class="reply-toolbar"><div class="tiny">可直接编辑草稿中的占位内容</div><div class="reply-actions"><button class="mini-btn" id="copyText" type="button">复制纯文本</button><button class="mini-btn" id="copyHtml" type="button">复制 HTML</button><button class="mini-btn" id="downloadReply" type="button">导出邮件</button></div></div>
+        <div class="reply-sheet"><div class="subject"><strong>Subject:</strong> <span id="replySubject" contenteditable="true">${escapeHtml(reply.subject)}</span></div><div class="reply-body" id="replyBody" contenteditable="true">${escapeHtml(reply.body)}</div></div>
+        <div class="reply-hint">黄色占位符未做自动替换；发送前请核对人名、项目、日期、附件、版本和承诺措辞。</div>`;
+
+      highlightPlaceholders($("#replyBody"));
+      bindReplyActions();
+      switchTab("overview");
+      showToast("分析完成，已生成正式回复草稿");
+    }
+
+    function highlightPlaceholders(el) {
+      el.innerHTML = el.innerHTML.replace(/\[([^\]]+)\]/g, '<mark class="placeholder">[$1]</mark>');
+    }
+
+    function getReplyText() { return `Subject: ${$("#replySubject")?.innerText || ""}\n\n${$("#replyBody")?.innerText || ""}`; }
+    function getReplyHtml() {
+      const subject = escapeHtml($("#replySubject")?.innerText || "");
+      const body = escapeHtml($("#replyBody")?.innerText || "").replace(/\n/g, "<br>");
+      return `<p><strong>Subject:</strong> ${subject}</p><p>${body}</p>`;
+    }
+
+    function copy(value, success) {
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(value).then(() => showToast(success));
+      else {
+        const temp = document.createElement("textarea"); temp.value = value; temp.style.position = "fixed"; temp.style.opacity = "0";
+        document.body.appendChild(temp); temp.select(); document.execCommand("copy"); temp.remove(); showToast(success);
+      }
+    }
+
+    function bindReplyActions() {
+      $("#copyText").onclick = () => copy(getReplyText(), "已复制纯文本回复");
+      $("#copyHtml").onclick = () => copy(getReplyHtml(), "已复制 HTML 邮件内容");
+      $("#downloadReply").onclick = () => {
+        const html = `<!doctype html><html><head><meta charset="utf-8"><title>Regulatory Email Draft</title></head><body style="font-family:Arial,sans-serif;line-height:1.65;color:#20302d;max-width:760px;margin:30px auto">${getReplyHtml()}<hr><small>Draft generated by RA Mail Studio Demo. Human review required.</small></body></html>`;
+        const url = URL.createObjectURL(new Blob([html], {type:"text/html;charset=utf-8"}));
+        const a = document.createElement("a"); a.href = url; a.download = "regulatory-email-draft.html"; a.click(); URL.revokeObjectURL(url);
+        showToast("邮件 HTML 已导出");
+      };
+    }
+
+    function resetAll() {
+      $("#emailInput").value = ""; $("#project").value = ""; $("#region").value = "auto"; $("#scenario").value = "auto"; $("#recipient").selectedIndex = 0;
+      $("#charCount").textContent = "0 字符"; $("#emptyState").hidden = false; $("#overviewContent").hidden = true;
+      $("#termsContent").innerHTML = ""; $("#risksContent").innerHTML = ""; $("#replyContent").innerHTML = "";
+      $("#termCount").textContent = ""; $("#riskCount").textContent = ""; $("#resultSubtitle").textContent = "等待输入邮件"; switchTab("overview");
+    }
+
+    $$(".tab").forEach(tab => tab.addEventListener("click", () => switchTab(tab.dataset.tab)));
+    $("#emailInput").addEventListener("input", e => $("#charCount").textContent = `${e.target.value.length.toLocaleString("zh-CN")} 字符`);
+    $("#sampleBtn").addEventListener("click", () => { $("#emailInput").value = sampleEmail; $("#emailInput").dispatchEvent(new Event("input")); $("#project").value = "Project Aurora"; showToast("已载入 CMC 示例邮件"); });
+    $("#clearBtn").addEventListener("click", () => { $("#emailInput").value = ""; $("#emailInput").dispatchEvent(new Event("input")); $("#emailInput").focus(); });
+    $("#analyzeBtn").addEventListener("click", renderAnalysis);
+    $("#resetBtn").addEventListener("click", resetAll);
+  </script>
+</body>
+</html>
