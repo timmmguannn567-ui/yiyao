@@ -362,7 +362,7 @@
 
     <footer class="footer">
       <span>RA Mail Studio Demo · 适用于创新药注册邮件的初步辅助处理</span>
-      <span>规则库版本 0.2 · 6 种语言 / 8 种风格 · 最终内容须经人工审核</span>
+      <span>规则库版本 0.3 · 6 种语言 / 8 种风格 · 最终内容须经人工审核</span>
     </footer>
   </main>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -619,22 +619,105 @@ Li`;
       return { subject, body: paragraphs.join("\n\n") };
     }
 
-    function polishEnglishDraft(text, style, deadline) {
-      const subjectMatch = text.match(/^\s*Subject\s*:\s*(.+)$/im);
-      let subject = subjectMatch ? subjectMatch[1].trim() : "Regulatory follow-up – [Project / Product]";
-      let body = text.replace(/^\s*Subject\s*:\s*.+(?:\r?\n)?/im, "").trim();
-      body = body.replace(/\bHi\b(?=\s+[A-Z\[])/, "Dear")
+    function normalizeRegulatoryTerms(value) {
+      let result = value;
+      const hasIbContext = /\bIB\b|investigator'?s brochure/i.test(result);
+      if (hasIbContext && /\bSOC\b/i.test(result) && !/Summary of Changes\s*\(SoC\)/i.test(result)) {
+        result = result.replace(/\bSOC\b/i, "Summary of Changes (SoC)");
+      }
+      result = result.replace(/\bV(?:ersion)?\s*(\d+(?:\.\d+)*)\b/gi, "Version $1");
+      result = result.replace(/\bVersion (\d+(?:\.\d+)*)\s+([A-Za-z][A-Za-z0-9-]*)\s+IB\b/i, "Version $1 of the $2 Investigator's Brochure (IB)");
+      result = result.replace(/\bfor the Version\b/gi, "for Version");
+      if (/\bIB\b/.test(result) && !/Investigator'?s Brochure\s*\(IB\)/i.test(result)) {
+        result = result.replace(/\bIB\b/, "Investigator's Brochure (IB)");
+      }
+      result = result.replace(/\bCoA\b/g, "Certificate of Analysis (CoA)")
+        .replace(/\bCSR\b/g, "Clinical Study Report (CSR)");
+      return result;
+    }
+
+    function improveSupportingReason(value) {
+      let result = value.trim().replace(/[.?!]+$/, "");
+      result = result.replace(/\bsome sites (?:general|generally) request(?:ed)?\b/gi, "several sites have requested")
+        .replace(/\bsome sites request(?:ed)?\b/gi, "several sites have requested")
+        .replace(/\bour operation team\b/gi, "our Operations team")
+        .replace(/\bis looking for waiting for\b/gi, "is currently awaiting")
+        .replace(/\bis looking to wait for\b/gi, "is currently awaiting")
+        .replace(/\bis waiting for this document\b/gi, "is currently awaiting it")
+        .replace(/\bOperations team is currently awaiting this document\b/gi, "Operations team is currently awaiting it")
+        .replace(/\bthis document,\s*our\b/gi, "this document, and our")
+        .replace(/\s*,\s*/g, ", ")
+        .replace(/\s{2,}/g, " ");
+      return result.charAt(0).toUpperCase() + result.slice(1) + ".";
+    }
+
+    function rewriteRegulatoryEnglish(value) {
+      let source = value.trim().replace(/\s+/g, " ");
+      const requestMatch = source.match(/^(?:could|can|would)\s+you\s+please\s+(?:let us know|advise|confirm)\s+when\s+(?:could|can|should)\s+we\s+expect\s+(.+?)(?:,\s*(?:since|as|because)\s+(.+))?[?.]?$/i);
+      if (requestMatch) {
+        const requestedItem = normalizeRegulatoryTerms(requestMatch[1].replace(/^(?:the\s+)?/, "").trim());
+        const reason = requestMatch[2] ? `\n\n${improveSupportingReason(requestMatch[2])}` : "";
+        return `Could you please confirm the expected availability date of the ${requestedItem}?${reason}\n\nWe would appreciate your confirmation of the anticipated delivery timeline.`;
+      }
+
+      source = normalizeRegulatoryTerms(source)
+        .replace(/\bcould you please let us know\b/gi, "Could you please confirm")
+        .replace(/\bwhen could we expect\b/gi, "when we can expect")
+        .replace(/\bwhen can we expect\b/gi, "the expected availability date of")
+        .replace(/\bsome sites (?:general|generally) request(?:ed)?\b/gi, "several sites have requested")
+        .replace(/\bour operation team\b/gi, "our Operations team")
+        .replace(/\bis looking for waiting for\b/gi, "is currently awaiting")
         .replace(/\bThanks for the email\b/gi, "Thank you for your email")
+        .replace(/\bI want to ask\b/gi, "I am writing to request clarification regarding")
+        .replace(/\bPlease send me\b/gi, "Could you please provide")
         .replace(/\bsend (?:it|them) ASAP\b/gi, "provide the requested materials by [confirmed date]")
         .replace(/\bASAP\b/g, "by [confirmed date]")
         .replace(/\bWe will try to\b/gi, "Subject to completion of the applicable review, we plan to")
         .replace(/\bThere should be no impact to the submission\b/gi, "We will confirm any potential impact on the submission timeline after completion of the relevant assessment")
-        .replace(/\bThanks,?\s*$/im, "Kind regards,")
-        .replace(/[ \t]+$/gm, "")
-        .replace(/\n{3,}/g, "\n\n");
-      if (!/^(Dear|Hello)/i.test(body)) body = `Dear [Name],\n\n${body}`;
-      if (!/(Kind regards|Best regards|Sincerely),?/i.test(body)) body += "\n\nKind regards,\n[Your Name]\nRegulatory Affairs";
-      return applyEnglishStyle({ subject, body }, style, deadline);
+        .replace(/\s*,\s*(our|we|the team|several sites)\b/gi, ". $1")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
+      const sentences = source.match(/[^.!?]+[.!?]?/g) || [source];
+      return sentences.map(sentence => {
+        const clean = sentence.trim();
+        if (!clean) return "";
+        const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
+        return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
+      }).filter(Boolean).join(" ");
+    }
+
+    function inferPolishedSubject(content) {
+      if (/\bSOC\b|Summary of Changes/i.test(content)) {
+        const version = content.match(/\bV(?:ersion)?\s*(\d+(?:\.\d+)*)/i)?.[1];
+        const product = content.match(/\bV(?:ersion)?\s*\d+(?:\.\d+)*\s+([A-Za-z][A-Za-z0-9-]*)\s+IB\b/i)?.[1];
+        const item = `${version ? `Version ${version} of ` : ""}${product ? `the ${product} ` : "the "}Investigator's Brochure`;
+        return `Follow-up on the Summary of Changes for ${item}`;
+      }
+      if (/stability/i.test(content)) return "Follow-up on stability data availability";
+      if (/certificate of analysis|\bCoA\b/i.test(content)) return "Follow-up on Certificate of Analysis availability";
+      if (/clinical study report|\bCSR\b/i.test(content)) return "Follow-up on Clinical Study Report availability";
+      if (/validation/i.test(content)) return "Follow-up on validation documentation";
+      return "Regulatory documentation follow-up – [Project / Product]";
+    }
+
+    function polishEnglishDraft(text, style, deadline) {
+      const subjectMatch = text.match(/^\s*Subject\s*:\s*(.+)$/im);
+      let body = text.replace(/^\s*Subject\s*:\s*.+(?:\r?\n)?/im, "").trim();
+      const greetingMatch = body.match(/^\s*(?:Dear|Hi|Hello)\s+([^,\n]+),?\s*/i);
+      const addressee = greetingMatch ? greetingMatch[1].trim() : "[Name]";
+      body = body.replace(/^\s*(?:Dear|Hi|Hello)\s+[^,\n]+,?\s*/i, "");
+      body = body.replace(/\n*\s*(?:Kind regards|Best regards|Regards|Sincerely|Thanks),?\s*\n[\s\S]*$/i, "").trim();
+
+      const originalBody = body;
+      const improvedBody = rewriteRegulatoryEnglish(body);
+      const subject = subjectMatch ? subjectMatch[1].trim() : inferPolishedSubject(originalBody);
+      let polishedBody = `Dear ${addressee},\n\n${improvedBody}\n\nKind regards,\n[Your Name]\nRegulatory Affairs`;
+
+      if (improvedBody.toLowerCase() === originalBody.replace(/\s+/g, " ").trim().toLowerCase()) {
+        polishedBody = `Dear ${addressee},\n\nI am writing to follow up on the matter outlined below.\n\n${improvedBody}\n\nWe would appreciate your confirmation of the relevant status and expected timeline.\n\nKind regards,\n[Your Name]\nRegulatory Affairs`;
+      }
+      return applyEnglishStyle({ subject, body: polishedBody }, style, deadline);
     }
 
     function buildOutput(context) {
