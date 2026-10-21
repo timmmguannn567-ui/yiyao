@@ -71,6 +71,9 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,.74); backdrop-filter: blur(20px) saturate(150%);
     }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #25a77c; box-shadow: 0 0 0 4px rgba(37,167,124,.12); }
+    .status.local .status-dot { background: #d28b2c; box-shadow: 0 0 0 4px rgba(210,139,44,.13); }
+    .status.busy .status-dot { animation: pulse 1.1s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .35; transform: scale(.78); } }
 
     .hero {
       position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,.36); border-radius: 30px; padding: 34px 36px; margin-bottom: 18px;
@@ -107,11 +110,11 @@
     .field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
     .field.full { grid-column: 1 / -1; }
     label { color: #46535d; font-size: 11px; font-weight: 720; letter-spacing: .015em; }
-    select, input[type="text"], textarea {
+    select, input[type="text"], input[type="password"], textarea {
       width: 100%; color: var(--ink); background: rgba(255,255,255,.66); border: 1px solid rgba(57,77,91,.13); border-radius: 13px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.72); transition: border .18s, box-shadow .18s, background .18s;
     }
-    select, input[type="text"] { height: 44px; padding: 0 12px; font-size: 12px; }
+    select, input[type="text"], input[type="password"] { height: 44px; padding: 0 12px; font-size: 12px; }
     select:hover, input:hover, textarea:hover { border-color: rgba(10,123,114,.3); background: rgba(255,255,255,.86); }
     textarea { min-height: 270px; resize: vertical; padding: 15px; font: 12.5px/1.68 ui-monospace, SFMono-Regular, Consolas, monospace; }
     .textarea-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 1px; }
@@ -125,6 +128,7 @@
       background: linear-gradient(120deg, #077d73, #327ea4); box-shadow: 0 9px 22px rgba(24,113,121,.2), inset 0 1px 0 rgba(255,255,255,.2); transition: .2s ease;
     }
     .primary:hover { filter: brightness(1.035); transform: translateY(-1px); box-shadow: 0 12px 26px rgba(24,113,121,.24); }
+    .primary:disabled { cursor: wait; opacity: .7; transform: none; filter: none; }
     .secondary { border: 1px solid rgba(57,77,91,.12); border-radius: 13px; padding: 12px 15px; color: var(--ink); background: rgba(255,255,255,.6); font-weight: 650; }
     .secondary:hover { border-color: rgba(10,123,114,.25); background: rgba(255,255,255,.88); }
 
@@ -218,7 +222,7 @@
           <p>创新药注册邮件专家 · Demo</p>
         </div>
       </div>
-      <div class="status"><span class="status-dot"></span>本地规则演示 · 不上传数据</div>
+      <div class="status local" id="aiStatus"><span class="status-dot"></span><span id="aiStatusText">本地规则备用模式</span></div>
     </header>
 
     <section class="hero">
@@ -315,6 +319,11 @@
                 <span><button class="link-btn" id="sampleBtn" type="button">载入示例</button> · <button class="link-btn" id="clearBtn" type="button">清空</button></span>
               </div>
             </div>
+            <div class="field full" id="accessCodeField" hidden>
+              <label for="accessCode">AI 服务访问码</label>
+              <input id="accessCode" type="password" autocomplete="current-password" placeholder="输入管理员提供的访问码" />
+              <div class="tiny">访问码仅保存在当前浏览器会话，不会写入网页源码或本机永久存储。</div>
+            </div>
             <div class="selection-note">输出语言与风格会同时应用于邮件主题、正文语气和结尾称谓；生成后仍可直接编辑。</div>
           </div>
           <div class="actions">
@@ -323,7 +332,7 @@
           </div>
           <div class="notice">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5m0 3h.01M10.3 4.9 3.5 17a2 2 0 0 0 1.7 3h13.6a2 2 0 0 0 1.7-3L13.7 4.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            <span>请先删除患者姓名、受试者编号、个人联系方式及未获授权的商业机密。本 Demo 仅做结构化演示。</span>
+            <span>请先删除患者姓名、受试者编号、个人联系方式及未获授权的商业机密。AI 草稿不替代法规、医学、质量或法务审核。</span>
           </div>
         </div>
       </article>
@@ -362,14 +371,17 @@
 
     <footer class="footer">
       <span>RA Mail Studio Demo · 适用于创新药注册邮件的初步辅助处理</span>
-      <span>规则库版本 0.3 · 6 种语言 / 8 种风格 · 最终内容须经人工审核</span>
+      <span>AI 增强版 · 规则引擎自动降级 · 6 种语言 / 8 种风格 · 最终内容须经人工审核</span>
     </footer>
   </main>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="./config.js"></script>
   <script>
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+    const appConfig = Object.assign({ apiEndpoint: "", modelLabel: "通义千问", requestTimeoutMs: 60000 }, window.RA_MAIL_CONFIG || {});
+    const aiEnabled = /^https:\/\//i.test(appConfig.apiEndpoint);
 
     const sampleEmail = `Subject: Request for Module 3 documents and updated stability data – Project Aurora
 
@@ -740,31 +752,105 @@ Li`;
       showToast.timer = setTimeout(() => toast.classList.remove("show"), 1800);
     }
 
-    function renderAnalysis() {
+    function getContext() {
       const text = $("#emailInput").value.trim();
       const mode = document.body.dataset.mode || "generate";
-      if (!text) { showToast(mode === "polish" ? "请先粘贴需要优化的回复草稿" : "请先粘贴需要理解的邮件"); $("#emailInput").focus(); return; }
       const selectedRegion = $("#region").value;
       const selectedScenario = $("#scenario").value;
-      const region = selectedRegion === "auto" ? detectRegion(text) : selectedRegion;
-      const scenario = selectedScenario === "auto" ? detectScenario(text) : selectedScenario;
-      const deadline = extractDate(text);
-      const terms = findTerms(text);
-      const risks = buildRisks(text, region, deadline);
-      const name = extractName(text);
-      const recipient = $("#recipient").value;
-      const project = $("#project").value.trim();
-      const language = $("#language").value;
-      const style = $("#style").value;
-      const reply = buildOutput({ mode, language, style, scenario, region, recipient, project, deadline, name, text });
+      return {
+        text,
+        mode,
+        region: selectedRegion,
+        scenario: selectedScenario,
+        language: $("#language").value,
+        style: $("#style").value,
+        recipient: $("#recipient").value,
+        project: $("#project").value.trim()
+      };
+    }
+
+    function buildLocalResult(context) {
+      const region = context.region === "auto" ? detectRegion(context.text) : context.region;
+      const scenario = context.scenario === "auto" ? detectScenario(context.text) : context.scenario;
+      const deadline = extractDate(context.text);
+      const terms = findTerms(context.text);
+      const risks = buildRisks(context.text, region, deadline);
+      const name = extractName(context.text);
+      const reply = buildOutput({ ...context, region, scenario, deadline, name });
       const dataRequests = [];
-      if (/module 3/i.test(text)) dataRequests.push("Module 3 质量文件");
-      if (/stability/i.test(text)) dataRequests.push("更新的稳定性数据");
-      if (/validation/i.test(text)) dataRequests.push("验证方案或报告");
-      if (/specification/i.test(text)) dataRequests.push("质量标准");
-      if (/certificate of analysis|\bcoa\b/i.test(text)) dataRequests.push("注册批次 CoA");
-      if (/timeline|delivery plan|expected date/i.test(text)) dataRequests.push("明确交付计划");
+      if (/module 3/i.test(context.text)) dataRequests.push("Module 3 质量文件");
+      if (/stability/i.test(context.text)) dataRequests.push("更新的稳定性数据");
+      if (/validation/i.test(context.text)) dataRequests.push("验证方案或报告");
+      if (/specification/i.test(context.text)) dataRequests.push("质量标准");
+      if (/certificate of analysis|\bcoa\b/i.test(context.text)) dataRequests.push("注册批次 CoA");
+      if (/timeline|delivery plan|expected date/i.test(context.text)) dataRequests.push("明确交付计划");
       if (!dataRequests.length) dataRequests.push("确认请求范围与适用文件", "提供版本状态与预计交付日期");
+      return {
+        region,
+        scenario,
+        intent_summary: context.mode === "polish"
+          ? `保留原意与事实边界，按“${styleMeta[context.style].label}”风格优化表达，并输出为${languageMeta[context.language].label}。`
+          : scenarios[scenario].intent,
+        action_items: dataRequests,
+        terms,
+        risks,
+        reply,
+        assumptions: []
+      };
+    }
+
+    function setAIStatus(text, state = "") {
+      const status = $("#aiStatus");
+      $("#aiStatusText").textContent = text;
+      status.classList.toggle("local", state === "local");
+      status.classList.toggle("busy", state === "busy");
+    }
+
+    async function requestAI(context) {
+      const enteredCode = $("#accessCode").value.trim();
+      const accessCode = enteredCode || sessionStorage.getItem("raMailAccessCode") || "";
+      if (!accessCode) {
+        const error = new Error("请先输入 AI 服务访问码");
+        error.code = "ACCESS_REQUIRED";
+        throw error;
+      }
+      sessionStorage.setItem("raMailAccessCode", accessCode);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), Math.max(5000, Number(appConfig.requestTimeoutMs) || 60000));
+      try {
+        const response = await fetch(appConfig.apiEndpoint, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "authorization": `Bearer ${accessCode}`
+          },
+          body: JSON.stringify(context),
+          signal: controller.signal
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(payload.error || `AI 服务返回 ${response.status}`);
+          error.status = response.status;
+          throw error;
+        }
+        if (!payload?.result?.reply?.subject || !payload?.result?.reply?.body) throw new Error("AI 返回结果不完整");
+        return payload;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function renderResult(context, result, sourceLabel) {
+      const mode = context.mode;
+      const language = context.language;
+      const style = context.style;
+      const region = result.region || (context.region === "auto" ? "MULTI" : context.region);
+      const scenario = scenarios[result.scenario] ? result.scenario : (context.scenario === "auto" ? "request" : context.scenario);
+      const terms = Array.isArray(result.terms) ? result.terms : [];
+      const risks = Array.isArray(result.risks) ? result.risks : [];
+      const actionItems = Array.isArray(result.action_items) && result.action_items.length ? result.action_items : ["核对请求范围、责任人和计划日期"];
+      const assumptions = Array.isArray(result.assumptions) ? result.assumptions.filter(Boolean) : [];
+      const reply = result.reply;
 
       $("#emptyState").hidden = true;
       $("#overviewContent").hidden = false;
@@ -773,10 +859,11 @@ Li`;
       $("#termCount").textContent = terms.length;
       $("#riskCount").textContent = risks.length;
       $("#overviewContent").innerHTML = `
-        <div class="section-title"><h4>${mode === "polish" ? "优化策略" : "结构化理解"}</h4><span class="confidence">本地规则 · Demo</span></div>
-        <div class="summary-card"><div class="summary-kicker">${mode === "polish" ? "处理目标" : "核心意图"}</div><div class="summary-value">${escapeHtml(mode === "polish" ? `保留原意与事实边界，按“${styleMeta[style].label}”风格优化表达，并输出为${languageMeta[language].label}。` : scenarios[scenario].intent)}</div></div>
-        <div class="summary-card"><div class="summary-kicker">需要处理的事项</div><ul class="summary-list">${dataRequests.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>
-        <div class="summary-card"><div class="summary-kicker">输出设置</div><div class="badge-row"><span class="badge">区域：${escapeHtml(region)}</span><span class="badge">语言：${escapeHtml(languageMeta[language].label)}</span><span class="badge">风格：${escapeHtml(styleMeta[style].label)}</span><span class="badge">对象：${escapeHtml(recipient)}</span></div><div class="term-note">${escapeHtml(styleMeta[style].note)}</div></div>`;
+        <div class="section-title"><h4>${mode === "polish" ? "优化策略" : "结构化理解"}</h4><span class="confidence">${escapeHtml(sourceLabel)}</span></div>
+        <div class="summary-card"><div class="summary-kicker">${mode === "polish" ? "处理目标" : "核心意图"}</div><div class="summary-value">${escapeHtml(result.intent_summary || scenarios[scenario].intent)}</div></div>
+        <div class="summary-card"><div class="summary-kicker">需要处理的事项</div><ul class="summary-list">${actionItems.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>
+        ${assumptions.length ? `<div class="summary-card"><div class="summary-kicker">待确认假设</div><ul class="summary-list">${assumptions.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>` : ""}
+        <div class="summary-card"><div class="summary-kicker">输出设置</div><div class="badge-row"><span class="badge">区域：${escapeHtml(region)}</span><span class="badge">语言：${escapeHtml(languageMeta[language].label)}</span><span class="badge">风格：${escapeHtml(styleMeta[style].label)}</span><span class="badge">对象：${escapeHtml(context.recipient)}</span></div><div class="term-note">${escapeHtml(styleMeta[style].note)}</div></div>`;
 
       $("#termsContent").innerHTML = `<div class="section-title"><h4>邮件中识别的术语</h4><span class="confidence">${terms.length} 项</span></div><div class="term-list">${terms.map(t => `<div class="term-card"><div class="term-key">${escapeHtml(t.term)}</div><div><div class="term-cn">${escapeHtml(t.cn)}</div><div class="term-note">${escapeHtml(t.note)}</div></div></div>`).join("")}</div>`;
       $("#risksContent").innerHTML = `<div class="section-title"><h4>发送前检查</h4><span class="confidence">${risks.length} 项</span></div><div class="risk-list">${risks.map(r => `<div class="risk ${r.level}"><div class="risk-level">${escapeHtml(r.tag)}</div><div><div class="risk-title">${escapeHtml(r.title)}</div><div class="risk-note">${escapeHtml(r.note)}</div></div></div>`).join("")}</div>`;
@@ -788,7 +875,43 @@ Li`;
       highlightPlaceholders($("#replyBody"));
       bindReplyActions();
       switchTab("overview");
-      showToast(mode === "polish" ? `优化完成，已生成${languageMeta[language].label}草稿` : `分析完成，已生成${languageMeta[language].label}回复`);
+    }
+
+    async function renderAnalysis() {
+      const context = getContext();
+      if (!context.text) { showToast(context.mode === "polish" ? "请先粘贴需要优化的回复草稿" : "请先粘贴需要理解的邮件"); $("#emailInput").focus(); return; }
+
+      const button = $("#analyzeBtn");
+      const idleLabel = context.mode === "polish" ? "优化回复文字" : "分析并生成回复";
+      button.disabled = true;
+      button.textContent = aiEnabled ? "千问正在处理…" : "本地规则处理中…";
+
+      try {
+        if (aiEnabled) {
+          setAIStatus(`${appConfig.modelLabel} · 处理中`, "busy");
+          const payload = await requestAI(context);
+          renderResult(context, payload.result, `AI · ${appConfig.modelLabel}`);
+          setAIStatus(`${appConfig.modelLabel} · 已连接`);
+          showToast(context.mode === "polish" ? "千问已完成文字优化" : "千问已完成邮件分析与回复");
+          return;
+        }
+        renderResult(context, buildLocalResult(context), "本地规则 · 备用");
+        setAIStatus("本地规则备用模式", "local");
+        showToast("AI 服务尚未配置，已使用本地规则");
+      } catch (error) {
+        if (error.status === 401 || error.code === "ACCESS_REQUIRED") {
+          sessionStorage.removeItem("raMailAccessCode");
+          $("#accessCodeField").hidden = false;
+          $("#accessCode").focus();
+        }
+        renderResult(context, buildLocalResult(context), "本地规则 · AI 服务降级");
+        setAIStatus("AI 暂不可用 · 已降级", "local");
+        const reason = error.name === "AbortError" ? "AI 请求超时" : error.message;
+        showToast(`${reason}，已使用本地规则`);
+      } finally {
+        button.disabled = false;
+        button.textContent = idleLabel;
+      }
     }
 
     function highlightPlaceholders(el) {
@@ -862,6 +985,13 @@ Li`;
     $("#clearBtn").addEventListener("click", () => { $("#emailInput").value = ""; $("#emailInput").dispatchEvent(new Event("input")); $("#emailInput").focus(); });
     $("#analyzeBtn").addEventListener("click", renderAnalysis);
     $("#resetBtn").addEventListener("click", resetAll);
+    $("#accessCodeField").hidden = !aiEnabled;
+    if (aiEnabled) {
+      $("#accessCode").value = sessionStorage.getItem("raMailAccessCode") || "";
+      setAIStatus(`${appConfig.modelLabel} · 等待调用`);
+    } else {
+      setAIStatus("本地规则备用模式", "local");
+    }
     document.body.dataset.mode = "generate";
   </script>
 </body>

@@ -1,0 +1,12 @@
+name = "ra-mail-studio-api"
+main = "src/index.js"
+compatibility_date = "2026-10-20"
+
+[vars]
+QWEN_MODEL = "qwen3.8-max"
+DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+ALLOWED_ORIGINS = "https://timmmguannn567-ui.github.io"
+
+# Configure both values as encrypted Worker secrets before deployment:
+#   npx wrangler secret put DASHSCOPE_API_KEY
+#   npx wrangler secret put APP_ACCESS_TOKEN
